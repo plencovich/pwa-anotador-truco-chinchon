@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- PWA Meta Tags -->
+    <title>Anotador Truco y Chinchón IA</title>
+    <meta name="description" content="Anotador de puntos para los juegos de cartas Truco y Chinchón con IA.">
+    <meta name="theme-color" content="#312E81"/>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://placehold.co/192x192/312E81/FFFFFF?text=Anotador">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hidden { display: none; }
+        .tally-marks svg { margin: 2px; height: 40px; width: auto; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        
+        /* Estilo para el cargando de la IA */
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #fff;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 h-full flex flex-col antialiased">
+
+    <!-- Contenedor principal -->
+    <div id="app-container" class="w-full max-w-lg mx-auto h-full flex flex-col p-4">
+
+        <!-- ===== PANTALLA DE INICIO ===== -->
+        <div id="home-screen" class="flex flex-col items-center justify-center h-full text-center fade-in">
+            <header class="mb-12">
+                <h1 class="text-4xl font-bold text-indigo-800 dark:text-indigo-400">Anotador IA</h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-2">Truco, Chinchón y Asistente Gemini</p>
+            </header>
+            <main class="w-full flex flex-col space-y-4">
+                <button id="btn-truco" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105">Truco</button>
+                <button id="btn-chinchon" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105">Chinchón</button>
+            </main>
+        </div>
+
+        <!-- ===== PANTALLA DE TRUCO ===== -->
+        <div id="truco-screen" class="hidden flex-col h-full fade-in">
+            <header class="flex justify-between items-center mb-4">
+                <button id="back-to-home-from-truco" class="text-indigo-600 dark:text-indigo-400 hover:underline">← Volver</button>
+                <div class="flex gap-2">
+                    <button id="ai-help-truco" class="bg-indigo-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Consultar Regla ✨</button>
+                    <button id="ai-verse-truco" class="bg-indigo-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Generar Verso ✨</button>
+                </div>
+                <button id="reset-truco" class="text-red-500 hover:underline">Reset</button>
+            </header>
+            <main class="flex-grow grid grid-cols-2 gap-px bg-gray-300 dark:bg-gray-700 rounded-lg overflow-hidden shadow-inner">
+                <!-- Columna 1 -->
+                <div class="bg-gray-100 dark:bg-gray-800 p-4 flex flex-col">
+                    <h2 id="truco-team-name-nosotros" data-team="nosotros" class="text-xl font-bold text-center mb-2 cursor-pointer hover:text-indigo-400" title="Click para cambiar nombre">Nosotros</h2>
+                    <div class="flex-grow space-y-4">
+                        <div>
+                            <h3 class="font-semibold text-lg text-red-500">Malas (<span id="malas-nosotros">0</span>/15)</h3>
+                            <div id="tally-malas-nosotros" class="tally-marks flex flex-wrap justify-center p-2 min-h-[120px]"></div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg text-green-500">Buenas (<span id="buenas-nosotros">0</span>/15)</h3>
+                            <div id="tally-buenas-nosotros" class="tally-marks flex flex-wrap justify-center p-2 min-h-[120px]"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-around mt-4">
+                        <button data-team="nosotros" data-op="minus" class="truco-btn bg-red-500 hover:bg-red-600 text-white rounded-full w-12 h-12 text-2xl font-bold flex items-center justify-center shadow-lg">-</button>
+                        <span id="score-nosotros" class="text-3xl font-bold w-12 text-center">0</span>
+                        <button data-team="nosotros" data-op="plus" class="truco-btn bg-green-500 hover:bg-green-600 text-white rounded-full w-12 h-12 text-2xl font-bold flex items-center justify-center shadow-lg">+</button>
+                    </div>
+                </div>
+                <!-- Columna 2 -->
+                <div class="bg-gray-100 dark:bg-gray-800 p-4 flex flex-col">
+                    <h2 id="truco-team-name-ellos" data-team="ellos" class="text-xl font-bold text-center mb-2 cursor-pointer hover:text-indigo-400" title="Click para cambiar nombre">Ellos</h2>
+                     <div class="flex-grow space-y-4">
+                        <div>
+                            <h3 class="font-semibold text-lg text-red-500">Malas (<span id="malas-ellos">0</span>/15)</h3>
+                            <div id="tally-malas-ellos" class="tally-marks flex flex-wrap justify-center p-2 min-h-[120px]"></div>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-lg text-green-500">Buenas (<span id="buenas-ellos">0</span>/15)</h3>
+                            <div id="tally-buenas-ellos" class="tally-marks flex flex-wrap justify-center p-2 min-h-[120px]"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-around mt-4">
+                        <button data-team="ellos" data-op="minus" class="truco-btn bg-red-500 hover:bg-red-600 text-white rounded-full w-12 h-12 text-2xl font-bold flex items-center justify-center shadow-lg">-</button>
+                        <span id="score-ellos" class="text-3xl font-bold w-12 text-center">0</span>
+                        <button data-team="ellos" data-op="plus" class="truco-btn bg-green-500 hover:bg-green-600 text-white rounded-full w-12 h-12 text-2xl font-bold flex items-center justify-center shadow-lg">+</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- ===== PANTALLA SETUP CHINCHÓN ===== -->
+        <div id="chinchon-setup-screen" class="hidden flex-col items-center justify-center h-full fade-in">
+            <header class="mb-8 text-center">
+                 <button id="back-to-home-from-chinchon-setup" class="absolute top-4 left-4 text-indigo-600 dark:text-indigo-400 hover:underline">← Volver</button>
+                <h1 class="text-2xl font-bold">Setup de Chinchón</h1>
+            </header>
+            <main class="w-full flex flex-col space-y-6">
+                <div>
+                    <label for="player-count" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Número de jugadores:</label>
+                    <select id="player-count" class="mt-1 block w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <option>2</option> <option>3</option> <option selected>4</option> <option>5</option> <option>6</option>
+                    </select>
+                </div>
+                <div id="player-names-container" class="space-y-2"></div>
+                <button id="start-chinchon-game" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg">Comenzar Juego</button>
+            </main>
+        </div>
+        
+        <!-- ===== PANTALLA JUEGO CHINCHÓN ===== -->
+        <div id="chinchon-game-screen" class="hidden flex-col h-full fade-in">
+            <header class="flex justify-between items-center mb-4">
+                 <button id="back-to-chinchon-setup" class="text-purple-600 dark:text-purple-400 hover:underline">← Volver</button>
+                 <button id="ai-help-chinchon" class="bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Sugerir Jugada ✨</button>
+                 <button id="reset-chinchon" class="text-red-500 hover:underline">Reset</button>
+            </header>
+            <main id="chinchon-players-scores" class="flex-grow space-y-3 overflow-y-auto"></main>
+        </div>
+    </div>
+
+    <!-- ===== MODALS ===== -->
+    <div id="modal-backdrop" class="fixed inset-0 z-40 bg-black bg-opacity-50 hidden"></div>
+    
+    <!-- Modal Gemini IA -->
+    <div id="ai-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm flex flex-col max-h-[80vh]">
+            <h3 id="ai-modal-title" class="text-xl font-bold mb-2 flex items-center gap-2">Gemini ✨</h3>
+            <div id="ai-modal-input-container" class="mb-4 hidden">
+                <p class="text-sm mb-2 text-gray-600 dark:text-gray-400">¿Qué duda tienes sobre el reglamento?</p>
+                <textarea id="ai-question-input" rows="3" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Ej: ¿Qué mata a qué en el truco?"></textarea>
+            </div>
+            <div id="ai-modal-content" class="text-sm overflow-y-auto mb-4 whitespace-pre-wrap"></div>
+            <div id="ai-loading" class="hidden flex flex-col items-center justify-center py-4">
+                <div class="spinner border-indigo-600 mb-2"></div>
+                <p class="text-xs">Gemini está pensando...</p>
+            </div>
+            <div class="flex gap-2">
+                <button id="ai-modal-close" class="w-full bg-gray-500 text-white font-bold py-2 rounded-lg">Cerrar</button>
+                <button id="ai-modal-send" class="hidden w-full bg-indigo-600 text-white font-bold py-2 rounded-lg">Preguntar ✨</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para ingresar puntos en Chinchón -->
+    <div id="chinchon-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+            <h3 id="modal-player-name" class="text-xl font-bold mb-4"></h3>
+            <p class="mb-2">Ingresar puntos de la ronda:</p>
+            <input type="number" id="modal-score-input" class="w-full text-center text-3xl font-bold border-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 rounded-md p-2" placeholder="0">
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <button id="modal-chinchon-minus-10" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg">-10 Puntos</button>
+                <button id="modal-chinchon-chinchon" class="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 rounded-lg">¡Chinchón! (-25)</button>
+            </div>
+            <div class="flex gap-4 mt-4">
+                <button id="modal-cancel" class="modal-btn-cancel w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Cancelar</button>
+                <button id="modal-confirm" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">Sumar Puntos</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Ganador -->
+    <div id="winner-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 text-center">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8">
+            <h2 class="text-3xl font-bold text-yellow-400 mb-4">¡Partida Terminada!</h2>
+            <p id="winner-message" class="text-lg mb-6"></p>
+            <button id="winner-modal-close" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg">Jugar de Nuevo</button>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación -->
+    <div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+            <p id="confirm-message" class="text-lg mb-6">¿Estás seguro?</p>
+            <div class="flex gap-4">
+                <button id="confirm-cancel-btn" class="modal-btn-cancel w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Cancelar</button>
+                <button id="confirm-ok-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para cambiar nombre de equipo -->
+    <div id="name-change-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
+            <h3 id="name-change-title" class="text-xl font-bold mb-4">Cambiar Nombre</h3>
+            <input type="text" id="name-change-input" class="w-full text-lg border-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 rounded-md p-2">
+            <div class="flex gap-4 mt-4">
+                <button id="name-change-cancel" class="modal-btn-cancel w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Cancelar</button>
+                <button id="name-change-save" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- Gemini API Setup ---
+        const apiKey = ""; // API Key se provee en el entorno
+        const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
+        
+        async function callGemini(prompt, systemInstruction = "Eres un experto en juegos de cartas argentinos como Truco y Chinchón.") {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] }
+            };
+
+            let delay = 1000;
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+                    if (!response.ok) throw new Error(result.error?.message || "Error API");
+                    return result.candidates?.[0]?.content?.parts?.[0]?.text || "No obtuve respuesta.";
+                } catch (error) {
+                    if (i === 4) throw error;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+        }
+
+        // --- Selectores Globales ---
+        const screens = { home: document.getElementById('home-screen'), truco: document.getElementById('truco-screen'), chinchonSetup: document.getElementById('chinchon-setup-screen'), chinchonGame: document.getElementById('chinchon-game-screen') };
+        const TRUCO_STORAGE_KEY = 'anotadorTrucoStateIA';
+        const CHINCHON_STORAGE_KEY = 'anotadorChinchonStateIA';
+        
+        let trucoScores = { nosotros: 0, ellos: 0 };
+        let trucoTeamNames = { nosotros: 'Nosotros', ellos: 'Ellos' };
+        let chinchonPlayers = [];
+        let currentPlayerIndex = null;
+
+        // --- Lógica de Modales ---
+        const modalBackdrop = document.getElementById('modal-backdrop');
+        const aiModal = document.getElementById('ai-modal');
+        const aiModalContent = document.getElementById('ai-modal-content');
+        const aiLoading = document.getElementById('ai-loading');
+        const aiModalClose = document.getElementById('ai-modal-close');
+        const aiModalSend = document.getElementById('ai-modal-send');
+        const aiQuestionInput = document.getElementById('ai-question-input');
+        const aiInputContainer = document.getElementById('ai-modal-input-container');
+
+        function openModal(modalElement) {
+            modalBackdrop.classList.remove('hidden');
+            modalElement.classList.remove('hidden');
+        }
+
+        function closeModal(modalElement) {
+             modalBackdrop.classList.add('hidden');
+             modalElement.classList.add('hidden');
+        }
+
+        aiModalClose.addEventListener('click', () => closeModal(aiModal));
+
+        async function handleAIRequest(prompt, title, showInput = false) {
+            document.getElementById('ai-modal-title').textContent = title + " ✨";
+            aiModalContent.textContent = "";
+            aiLoading.classList.remove('hidden');
+            aiInputContainer.classList.toggle('hidden', !showInput);
+            aiModalSend.classList.toggle('hidden', !showInput);
+            openModal(aiModal);
+
+            if (!showInput) {
+                try {
+                    const response = await callGemini(prompt);
+                    aiModalContent.textContent = response;
+                } catch (e) {
+                    aiModalContent.textContent = "Error al conectar con Gemini. Intenta de nuevo.";
+                } finally {
+                    aiLoading.classList.add('hidden');
+                }
+            } else {
+                aiLoading.classList.add('hidden');
+                aiModalSend.onclick = async () => {
+                    const question = aiQuestionInput.value.trim();
+                    if (!question) return;
+                    aiLoading.classList.remove('hidden');
+                    aiModalContent.textContent = "";
+                    try {
+                        const response = await callGemini(`Duda del usuario: ${question}. Explica de forma concisa.`);
+                        aiModalContent.textContent = response;
+                    } catch (e) {
+                        aiModalContent.textContent = "Error al consultar.";
+                    } finally {
+                        aiLoading.classList.add('hidden');
+                    }
+                };
+            }
+        }
+
+        // --- Navegación ---
+        function showScreen(screenName) {
+            Object.values(screens).forEach(screen => screen.classList.add('hidden'));
+            if(screens[screenName]) {
+                screens[screenName].classList.remove('hidden');
+                screens[screenName].classList.add('flex');
+            }
+        }
+        
+        document.getElementById('btn-truco').addEventListener('click', () => showScreen('truco'));
+        document.getElementById('btn-chinchon').addEventListener('click', () => {
+            if (chinchonPlayers.length > 0) showScreen('chinchonGame');
+            else { showScreen('chinchonSetup'); updatePlayerNameInputs(); }
+        });
+        document.getElementById('back-to-home-from-truco').addEventListener('click', () => showScreen('home'));
+        document.getElementById('back-to-home-from-chinchon-setup').addEventListener('click', () => showScreen('home'));
+        document.getElementById('back-to-chinchon-setup').addEventListener('click', () => {
+            showConfirm('¿Volver al setup? Perderás el progreso actual.', () => {
+                chinchonPlayers = []; saveChinchonState(); showScreen('chinchonSetup');
+            });
+        });
+        
+        // --- Persistencia ---
+        const saveTrucoState = () => localStorage.setItem(TRUCO_STORAGE_KEY, JSON.stringify({ scores: trucoScores, names: trucoTeamNames }));
+        const saveChinchonState = () => localStorage.setItem(CHINCHON_STORAGE_KEY, JSON.stringify(chinchonPlayers));
+
+        function loadGameState() {
+            const savedTruco = localStorage.getItem(TRUCO_STORAGE_KEY);
+            if (savedTruco) {
+                const data = JSON.parse(savedTruco);
+                trucoScores = data.scores || { nosotros: 0, ellos: 0 };
+                trucoTeamNames = data.names || { nosotros: 'Nosotros', ellos: 'Ellos' };
+            }
+            const savedChinchon = localStorage.getItem(CHINCHON_STORAGE_KEY);
+            if (savedChinchon) chinchonPlayers = JSON.parse(savedChinchon);
+            updateTrucoUI();
+            if (chinchonPlayers.length > 0) renderChinchonScores();
+        }
+
+        // ================== LÓGICA TRUCO ==================
+        document.getElementById('ai-help-truco').addEventListener('click', () => handleAIRequest("", "Consultar Regla", true));
+        document.getElementById('ai-verse-truco').addEventListener('click', () => handleAIRequest("Genera un verso corto y gracioso de Truco argentino para cantar falta envido o truco.", "Verso de Truco"));
+
+        function getTallySVG(type) {
+            const strokeColor = 'currentColor';
+            if (type === 1) return `<svg width="10" height="40" viewBox="0 0 10 40"><line x1="5" y1="0" x2="5" y2="40" stroke="${strokeColor}" stroke-width="3"/></svg>`;
+            if (type === 5) return `<svg width="45" height="40" viewBox="0 0 45 40"><g stroke-width="3" stroke="${strokeColor}"><line x1="5" y1="0" x2="5" y2="40"/><line x1="40" y1="0" x2="40" y2="40"/><line x1="5" y1="2" x2="40" y2="2"/><line x1="5" y1="38" x2="40" y2="38"/><line x1="5" y1="38" x2="40" y2="2"/></g></svg>`;
+            return '';
+        }
+
+        function updateTrucoUI() {
+            Object.keys(trucoScores).forEach(team => {
+                document.getElementById(`truco-team-name-${team}`).textContent = trucoTeamNames[team];
+                document.getElementById(`score-${team}`).textContent = trucoScores[team];
+                const score = trucoScores[team], malas = Math.min(score, 15), buenas = Math.max(0, score - 15);
+                document.getElementById(`malas-${team}`).textContent = malas;
+                document.getElementById(`buenas-${team}`).textContent = buenas;
+                const mC = document.getElementById(`tally-malas-${team}`), bC = document.getElementById(`tally-buenas-${team}`);
+                mC.innerHTML = Array(Math.floor(malas/5)).fill(getTallySVG(5)).join('') + Array(malas%5).fill(getTallySVG(1)).join('');
+                bC.innerHTML = Array(Math.floor(buenas/5)).fill(getTallySVG(5)).join('') + Array(buenas%5).fill(getTallySVG(1)).join('');
+            });
+            saveTrucoState();
+        }
+        
+        document.querySelectorAll('.truco-btn').forEach(b => b.addEventListener('click', e => {
+            const { team, op } = e.currentTarget.dataset;
+            if (op === 'plus') trucoScores[team] = Math.min(30, trucoScores[team] + 1);
+            else if (op === 'minus') trucoScores[team] = Math.max(0, trucoScores[team] - 1);
+            updateTrucoUI();
+            if (trucoScores[team] >= 30) showWinner(`¡El equipo "${trucoTeamNames[team]}" ganó la partida de Truco!`);
+        }));
+
+        document.querySelectorAll('h2[data-team]').forEach(h2 => h2.addEventListener('click', e => {
+            const team = e.currentTarget.dataset.team;
+            document.getElementById('name-change-input').value = trucoTeamNames[team];
+            const saveBtn = document.getElementById('name-change-save');
+            saveBtn.onclick = () => {
+                if (document.getElementById('name-change-input').value.trim()) trucoTeamNames[team] = document.getElementById('name-change-input').value.trim();
+                updateTrucoUI(); closeModal(document.getElementById('name-change-modal'));
+            };
+            openModal(document.getElementById('name-change-modal'));
+        }));
+        
+        document.getElementById('reset-truco').addEventListener('click', () => showConfirm('¿Reiniciar partida?', () => { trucoScores = { nosotros: 0, ellos: 0 }; updateTrucoUI(); }));
+
+        // ================== LÓGICA CHINCHÓN ==================
+        document.getElementById('ai-help-chinchon').addEventListener('click', () => handleAIRequest("Dime una estrategia rápida para ganar al Chinchón si tengo cartas altas o si busco el -10.", "Estrategia de Chinchón"));
+
+        const playerCountSelect = document.getElementById('player-count');
+        const playerNamesContainer = document.getElementById('player-names-container');
+        
+        function updatePlayerNameInputs() {
+            playerNamesContainer.innerHTML = Array.from({length: parseInt(playerCountSelect.value)}, (_, i) => 
+                `<input type="text" placeholder="Jugador ${i + 1}" value="Jugador ${i+1}" class="player-name-input mt-1 block w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3">`
+            ).join('');
+        }
+        playerCountSelect.addEventListener('change', updatePlayerNameInputs);
+
+        document.getElementById('start-chinchon-game').addEventListener('click', () => {
+            chinchonPlayers = Array.from(document.querySelectorAll('.player-name-input')).map(input => ({ name: input.value.trim() || input.placeholder, score: 0, eliminated: false }));
+            renderChinchonScores(); saveChinchonState(); showScreen('chinchonGame');
+        });
+        
+        function renderChinchonScores() {
+            const container = document.getElementById('chinchon-players-scores');
+            container.innerHTML = '';
+            chinchonPlayers.forEach((player, index) => {
+                const playerDiv = document.createElement('div');
+                playerDiv.className = `p-4 rounded-lg flex items-center justify-between shadow transition-all ${player.eliminated ? 'bg-red-900/50 opacity-50' : 'bg-gray-200 dark:bg-gray-800'}`;
+                playerDiv.innerHTML = `<div class="flex flex-col"><span class="font-bold text-lg">${player.name}</span><span class="font-bold text-3xl ${player.score >= 101 ? 'text-red-500' : ''}">${player.score}</span></div> ${!player.eliminated ? `<button data-idx="${index}" class="add-score-btn bg-purple-600 text-white font-bold py-2 px-4 rounded-lg">Anotar</button>` : '<span class="text-red-400 font-bold">ELIMINADO</span>'}`;
+                if (!player.eliminated) {
+                    playerDiv.querySelector('.add-score-btn').addEventListener('click', e => {
+                        currentPlayerIndex = parseInt(e.currentTarget.dataset.idx);
+                        document.getElementById('modal-player-name').textContent = `Puntos para ${chinchonPlayers[currentPlayerIndex].name}`;
+                        document.getElementById('modal-score-input').value = '';
+                        openModal(document.getElementById('chinchon-modal'));
+                    });
+                }
+                container.appendChild(playerDiv);
+            });
+            const active = chinchonPlayers.filter(p => !p.eliminated);
+            if (chinchonPlayers.length > 1 && active.length === 1) showWinner(`¡${active[0].name} ganó el Chinchón!`);
+        }
+        
+        function addPoints(pts) {
+            if (currentPlayerIndex === null) return;
+            chinchonPlayers[currentPlayerIndex].score += pts;
+            if (chinchonPlayers[currentPlayerIndex].score >= 101) chinchonPlayers[currentPlayerIndex].eliminated = true;
+            closeModal(document.getElementById('chinchon-modal'));
+            renderChinchonScores(); saveChinchonState(); currentPlayerIndex = null;
+        }
+        
+        document.getElementById('modal-confirm').onclick = () => addPoints(parseInt(document.getElementById('modal-score-input').value) || 0);
+        document.getElementById('modal-chinchon-minus-10').onclick = () => addPoints(-10);
+        document.getElementById('modal-chinchon-chinchon').onclick = () => addPoints(-25);
+        document.getElementById('modal-cancel').onclick = () => closeModal(document.getElementById('chinchon-modal'));
+        document.getElementById('reset-chinchon').onclick = () => showConfirm('¿Reiniciar?', () => { chinchonPlayers = []; saveChinchonState(); showScreen('chinchonSetup'); });
+
+        // --- Modals Auxiliares ---
+        function showConfirm(msg, onOk) {
+            document.getElementById('confirm-message').textContent = msg;
+            const okBtn = document.getElementById('confirm-ok-btn');
+            okBtn.onclick = () => { onOk(); closeModal(document.getElementById('confirm-modal')); };
+            openModal(document.getElementById('confirm-modal'));
+        }
+        function showWinner(msg) {
+            document.getElementById('winner-message').textContent = msg;
+            openModal(document.getElementById('winner-modal'));
+        }
+        document.getElementById('winner-modal-close').onclick = () => {
+            closeModal(document.getElementById('winner-modal'));
+            localStorage.clear(); location.reload();
+        };
+
+        loadGameState();
+        showScreen('home');
+    });
+    </script>
+</body>
+</html>
