@@ -184,6 +184,20 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal de Historial de Puntos -->
+    <div id="history-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm flex flex-col">
+            <h3 id="history-player-name" class="text-xl font-bold mb-3 text-center"></h3>
+            <div id="history-list-container" class="max-h-60 overflow-y-auto mb-4 border dark:border-gray-700 rounded-lg p-3 divide-y dark:divide-gray-700">
+                <!-- Se puebla dinámicamente -->
+            </div>
+            <div class="flex flex-col gap-2">
+                <button id="history-undo-btn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg text-sm hidden">Deshacer Última Anotación ↩</button>
+                <button id="history-close-btn" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 rounded-lg">Cerrar</button>
+            </div>
+        </div>
+    </div>
     
     <!-- Modal de Ganador -->
     <div id="winner-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 text-center">
@@ -351,7 +365,10 @@
                 trucoTeamNames = data.names || { nosotros: 'Nosotros', ellos: 'Ellos' };
             }
             const savedChinchon = localStorage.getItem(CHINCHON_STORAGE_KEY);
-            if (savedChinchon) chinchonPlayers = JSON.parse(savedChinchon);
+            if (savedChinchon) {
+                chinchonPlayers = JSON.parse(savedChinchon);
+                chinchonPlayers.forEach(p => { if (!p.history) p.history = []; });
+            }
             updateTrucoUI();
             if (chinchonPlayers.length > 0) renderChinchonScores();
         }
@@ -416,7 +433,7 @@
         playerCountSelect.addEventListener('change', updatePlayerNameInputs);
 
         document.getElementById('start-chinchon-game').addEventListener('click', () => {
-            chinchonPlayers = Array.from(document.querySelectorAll('.player-name-input')).map(input => ({ name: input.value.trim() || input.placeholder, score: 0, eliminated: false }));
+            chinchonPlayers = Array.from(document.querySelectorAll('.player-name-input')).map(input => ({ name: input.value.trim() || input.placeholder, score: 0, history: [], eliminated: false }));
             renderChinchonScores(); saveChinchonState(); showScreen('chinchonGame');
         });
         
@@ -426,7 +443,18 @@
             chinchonPlayers.forEach((player, index) => {
                 const playerDiv = document.createElement('div');
                 playerDiv.className = `p-4 rounded-lg flex items-center justify-between shadow transition-all ${player.eliminated ? 'bg-red-900/50 opacity-50' : 'bg-gray-200 dark:bg-gray-800'}`;
-                playerDiv.innerHTML = `<div class="flex flex-col"><span class="font-bold text-lg">${player.name}</span><span class="font-bold text-3xl ${player.score >= 101 ? 'text-red-500' : ''}">${player.score}</span></div> ${!player.eliminated ? `<button data-idx="${index}" class="add-score-btn bg-purple-600 text-white font-bold py-2 px-4 rounded-lg">Anotar</button>` : '<span class="text-red-400 font-bold">ELIMINADO</span>'}`;
+                playerDiv.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="font-bold text-lg">${player.name}</span>
+                        <span class="font-bold text-3xl ${player.score >= 101 ? 'text-red-500' : ''}">${player.score}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button data-idx="${index}" class="show-history-btn bg-gray-600 hover:bg-gray-700 text-white p-2.5 rounded-lg flex items-center justify-center shadow" title="Ver Historial">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </button>
+                        ${!player.eliminated ? `<button data-idx="${index}" class="add-score-btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow">Anotar</button>` : '<span class="text-red-400 font-bold ml-2">ELIMINADO</span>'}
+                    </div>`;
+                
                 if (!player.eliminated) {
                     playerDiv.querySelector('.add-score-btn').addEventListener('click', e => {
                         currentPlayerIndex = parseInt(e.currentTarget.dataset.idx);
@@ -435,16 +463,62 @@
                         openModal(document.getElementById('chinchon-modal'));
                     });
                 }
+
+                playerDiv.querySelector('.show-history-btn').addEventListener('click', e => {
+                    openHistoryModal(parseInt(e.currentTarget.dataset.idx));
+                });
+
                 container.appendChild(playerDiv);
             });
             const active = chinchonPlayers.filter(p => !p.eliminated);
             if (chinchonPlayers.length > 1 && active.length === 1) showWinner(`¡${active[0].name} ganó el Chinchón!`);
         }
         
+        function openHistoryModal(index) {
+            const player = chinchonPlayers[index];
+            if (!player) return;
+            
+            document.getElementById('history-player-name').textContent = `Historial: ${player.name}`;
+            const container = document.getElementById('history-list-container');
+            const undoBtn = document.getElementById('history-undo-btn');
+            
+            if (!player.history || player.history.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-500 py-3">No hay puntos anotados aún.</p>';
+                undoBtn.classList.add('hidden');
+            } else {
+                let cumulative = 0;
+                container.innerHTML = player.history.map((pts, i) => {
+                    cumulative += pts;
+                    const isNeg = pts < 0;
+                    return `<div class="flex justify-between items-center py-2 text-sm">
+                        <span class="text-gray-500">Ronda ${i + 1}</span>
+                        <span class="font-semibold ${isNeg ? 'text-green-500' : 'text-indigo-400'}">${pts > 0 ? '+' : ''}${pts} pts</span>
+                        <span class="font-bold text-gray-400">Total: ${cumulative}</span>
+                    </div>`;
+                }).join('');
+
+                undoBtn.classList.remove('hidden');
+                undoBtn.onclick = () => {
+                    const lastPts = player.history.pop();
+                    player.score -= lastPts;
+                    if (player.score < 101) player.eliminated = false;
+                    saveChinchonState();
+                    renderChinchonScores();
+                    openHistoryModal(index);
+                };
+            }
+            
+            document.getElementById('history-close-btn').onclick = () => closeModal(document.getElementById('history-modal'));
+            openModal(document.getElementById('history-modal'));
+        }
+
         function addPoints(pts) {
             if (currentPlayerIndex === null) return;
-            chinchonPlayers[currentPlayerIndex].score += pts;
-            if (chinchonPlayers[currentPlayerIndex].score >= 101) chinchonPlayers[currentPlayerIndex].eliminated = true;
+            const player = chinchonPlayers[currentPlayerIndex];
+            if (!player.history) player.history = [];
+            player.score += pts;
+            player.history.push(pts);
+            if (player.score >= 101) player.eliminated = true;
             closeModal(document.getElementById('chinchon-modal'));
             renderChinchonScores(); saveChinchonState(); currentPlayerIndex = null;
         }
