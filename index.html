@@ -2,14 +2,23 @@
 <html lang="es" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <!-- PWA Meta Tags -->
+    <!-- PWA & Mobile Native Meta Tags -->
     <title>Anotador Truco y Chinchón IA</title>
-    <meta name="description" content="Anotador de puntos para los juegos de cartas Truco y Chinchón con IA.">
-    <meta name="theme-color" content="#312E81"/>
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="https://placehold.co/192x192/312E81/FFFFFF?text=Anotador">
+    <meta name="description" content="Anotador de puntos para Truco y Chinchón con Asistente Gemini IA. Instalable y sin conexión.">
+    <meta name="theme-color" content="#1e1b4b"/>
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Anotador IA">
+    <meta name="application-name" content="Anotador IA">
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- Dynamic Icon Links (Set by JS) -->
+    <link rel="icon" id="favicon-link" type="image/svg+xml">
+    <link rel="apple-touch-icon" id="apple-touch-icon-link">
+    <link rel="manifest" id="manifest-link">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -17,28 +26,36 @@
     <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+            overscroll-behavior-y: none;
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-left: env(safe-area-inset-left);
+            padding-right: env(safe-area-inset-right);
         }
-        .hidden { display: none; }
-        .tally-marks svg { margin: 2px; height: 40px; width: auto; }
+        .hidden { display: none !important; }
+        .tally-marks svg { margin: 2px; height: 38px; width: auto; }
+        
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
+            from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .fade-in { animation: fadeIn 0.25s ease-out forwards; }
         
-        /* Estilo para el cargando de la IA */
+        /* Spinner */
         .spinner {
             border: 3px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             border-top: 3px solid #fff;
-            width: 20px;
-            height: 20px;
+            width: 22px;
+            height: 22px;
             animation: spin 1s linear infinite;
         }
         @keyframes spin {
@@ -50,67 +67,88 @@
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 h-full flex flex-col antialiased">
 
     <!-- Contenedor principal -->
-    <div id="app-container" class="w-full max-w-lg mx-auto h-full flex flex-col p-4">
+    <div id="app-container" class="w-full max-w-lg mx-auto h-full flex flex-col p-4 relative">
 
         <!-- ===== PANTALLA DE INICIO ===== -->
-        <div id="home-screen" class="flex flex-col items-center justify-center h-full text-center fade-in">
-            <header class="mb-12">
-                <h1 class="text-4xl font-bold text-indigo-800 dark:text-indigo-400">Anotador IA</h1>
-                <p class="text-gray-600 dark:text-gray-400 mt-2">Truco, Chinchón y Asistente Gemini</p>
+        <div id="home-screen" class="flex flex-col items-center justify-between h-full text-center fade-in py-6">
+            <header class="mt-4 flex flex-col items-center">
+                <!-- App Icon Header Display -->
+                <div id="app-logo-container" class="w-20 h-20 mb-4 rounded-2xl shadow-xl flex items-center justify-center bg-gradient-to-br from-indigo-900 to-purple-900 border border-indigo-500/30">
+                    <svg class="w-12 h-12 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm3 12H9v-1c0-2 4-3.1 6-3.1s6 1.1 6 3.1v1z"/>
+                    </svg>
+                </div>
+                <h1 class="text-4xl font-extrabold tracking-tight text-indigo-900 dark:text-indigo-300">Anotador IA</h1>
+                <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mt-1">Truco, Chinchón y Asistente Gemini</p>
             </header>
-            <main class="w-full flex flex-col space-y-4">
-                <button id="btn-truco" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105">Truco</button>
-                <button id="btn-chinchon" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-lg shadow-lg transition-transform transform hover:scale-105">Chinchón</button>
+
+            <main class="w-full flex flex-col space-y-4 my-auto max-w-xs">
+                <button id="btn-truco" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold py-4 px-6 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-3 text-lg">
+                    <span>🃏</span>
+                    <span>Truco</span>
+                </button>
+                <button id="btn-chinchon" class="w-full bg-purple-600 hover:bg-purple-700 active:scale-95 text-white font-bold py-4 px-6 rounded-2xl shadow-lg transition-all flex items-center justify-center gap-3 text-lg">
+                    <span>🎴</span>
+                    <span>Chinchón</span>
+                </button>
             </main>
+
+            <!-- PWA Banner / Install Button -->
+            <footer class="w-full mt-4">
+                <button id="pwa-install-btn" class="hidden w-full bg-gradient-to-r from-amber-500 to-amber-600 text-gray-950 font-extrabold py-3 px-4 rounded-xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-95 text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>Instalar App en el Celular 📲</span>
+                </button>
+            </footer>
         </div>
 
         <!-- ===== PANTALLA DE TRUCO ===== -->
         <div id="truco-screen" class="hidden flex-col h-full fade-in">
-            <header class="flex justify-between items-center mb-4">
-                <button id="back-to-home-from-truco" class="text-indigo-600 dark:text-indigo-400 hover:underline">← Volver</button>
-                <div class="flex gap-2">
-                    <button id="ai-help-truco" class="bg-indigo-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Consultar Regla ✨</button>
-                    <button id="ai-verse-truco" class="bg-indigo-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Generar Verso ✨</button>
+            <header class="flex justify-between items-center mb-3">
+                <button id="back-to-home-from-truco" class="text-indigo-600 dark:text-indigo-400 font-medium hover:underline text-sm flex items-center gap-1">← Inicio</button>
+                <div class="flex gap-1.5">
+                    <button id="ai-help-truco" class="bg-indigo-600 text-white px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm hover:bg-indigo-700">Regla ✨</button>
+                    <button id="ai-verse-truco" class="bg-indigo-600 text-white px-2.5 py-1 rounded-full text-xs font-semibold shadow-sm hover:bg-indigo-700">Verso ✨</button>
                 </div>
-                <button id="reset-truco" class="text-red-500 hover:underline">Reset</button>
+                <button id="reset-truco" class="text-red-500 hover:underline text-sm font-medium">Reset</button>
             </header>
-            <main class="flex-grow grid grid-cols-2 gap-px bg-gray-300 dark:bg-gray-700 rounded-lg overflow-hidden shadow-inner">
+            <main class="flex-grow grid grid-cols-2 gap-px bg-gray-300 dark:bg-gray-700 rounded-2xl overflow-hidden shadow-md">
                 <!-- Columna 1 -->
-                <div class="bg-gray-100 dark:bg-gray-800 p-4 flex flex-col">
-                    <h2 id="truco-team-name-nosotros" data-team="nosotros" class="text-xl font-bold text-center mb-2 cursor-pointer hover:text-indigo-400" title="Click para cambiar nombre">Nosotros</h2>
-                    <div class="flex-grow space-y-4">
+                <div class="bg-gray-100 dark:bg-gray-800 p-3 flex flex-col justify-between">
+                    <h2 id="truco-team-name-nosotros" data-team="nosotros" class="text-xl font-bold text-center mb-1 cursor-pointer hover:text-indigo-400 transition-colors" title="Click para cambiar nombre">Nosotros</h2>
+                    <div class="flex-grow space-y-2 overflow-y-auto">
                         <div>
-                            <h3 class="font-semibold text-lg text-red-500">Malas (<span id="malas-nosotros">0</span>/15)</h3>
-                            <div id="tally-malas-nosotros" class="tally-marks flex flex-wrap justify-center p-2 min-h-[120px]"></div>
+                            <h3 class="font-semibold text-xs text-red-500 uppercase tracking-wider text-center">Malas (<span id="malas-nosotros">0</span>/15)</h3>
+                            <div id="tally-malas-nosotros" class="tally-marks flex flex-wrap justify-center p-1 min-h-[100px]"></div>
                         </div>
                         <div>
-                            <h3 class="font-semibold text-lg text-green-500">Buenas (<span id="buenas-nosotros">0</span>/15)</h3>
-                            <div id="tally-buenas-nosotros" class="tally-marks flex flex-wrap justify-center p-2 min-h-[120px]"></div>
+                            <h3 class="font-semibold text-xs text-green-500 uppercase tracking-wider text-center">Buenas (<span id="buenas-nosotros">0</span>/15)</h3>
+                            <div id="tally-buenas-nosotros" class="tally-marks flex flex-wrap justify-center p-1 min-h-[100px]"></div>
                         </div>
                     </div>
-                    <div class="flex items-center justify-around mt-4">
-                        <button data-team="nosotros" data-op="minus" class="truco-btn bg-red-500 hover:bg-red-600 text-white rounded-full w-12 h-12 text-2xl font-bold flex items-center justify-center shadow-lg">-</button>
-                        <span id="score-nosotros" class="text-3xl font-bold w-12 text-center">0</span>
-                        <button data-team="nosotros" data-op="plus" class="truco-btn bg-green-500 hover:bg-green-600 text-white rounded-full w-12 h-12 text-2xl font-bold flex items-center justify-center shadow-lg">+</button>
+                    <div class="flex items-center justify-around mt-2 pt-2 border-t dark:border-gray-700">
+                        <button data-team="nosotros" data-op="minus" class="truco-btn bg-red-500 active:bg-red-600 text-white rounded-full w-12 h-12 text-2xl font-bold flex items-center justify-center shadow-md active:scale-90 transition-transform">-</button>
+                        <span id="score-nosotros" class="text-3xl font-extrabold w-12 text-center">0</span>
+                        <button data-team="nosotros" data-op="plus" class="truco-btn bg-green-500 active:bg-green-600 text-white rounded-full w-12 h-12 text-2xl font-bold flex items-center justify-center shadow-md active:scale-90 transition-transform">+</button>
                     </div>
                 </div>
                 <!-- Columna 2 -->
-                <div class="bg-gray-100 dark:bg-gray-800 p-4 flex flex-col">
-                    <h2 id="truco-team-name-ellos" data-team="ellos" class="text-xl font-bold text-center mb-2 cursor-pointer hover:text-indigo-400" title="Click para cambiar nombre">Ellos</h2>
-                     <div class="flex-grow space-y-4">
+                <div class="bg-gray-100 dark:bg-gray-800 p-3 flex flex-col justify-between">
+                    <h2 id="truco-team-name-ellos" data-team="ellos" class="text-xl font-bold text-center mb-1 cursor-pointer hover:text-indigo-400 transition-colors" title="Click para cambiar nombre">Ellos</h2>
+                     <div class="flex-grow space-y-2 overflow-y-auto">
                         <div>
-                            <h3 class="font-semibold text-lg text-red-500">Malas (<span id="malas-ellos">0</span>/15)</h3>
-                            <div id="tally-malas-ellos" class="tally-marks flex flex-wrap justify-center p-2 min-h-[120px]"></div>
+                            <h3 class="font-semibold text-xs text-red-500 uppercase tracking-wider text-center">Malas (<span id="malas-ellos">0</span>/15)</h3>
+                            <div id="tally-malas-ellos" class="tally-marks flex flex-wrap justify-center p-1 min-h-[100px]"></div>
                         </div>
                         <div>
-                            <h3 class="font-semibold text-lg text-green-500">Buenas (<span id="buenas-ellos">0</span>/15)</h3>
-                            <div id="tally-buenas-ellos" class="tally-marks flex flex-wrap justify-center p-2 min-h-[120px]"></div>
+                            <h3 class="font-semibold text-xs text-green-500 uppercase tracking-wider text-center">Buenas (<span id="buenas-ellos">0</span>/15)</h3>
+                            <div id="tally-buenas-ellos" class="tally-marks flex flex-wrap justify-center p-1 min-h-[100px]"></div>
                         </div>
                     </div>
-                    <div class="flex items-center justify-around mt-4">
-                        <button data-team="ellos" data-op="minus" class="truco-btn bg-red-500 hover:bg-red-600 text-white rounded-full w-12 h-12 text-2xl font-bold flex items-center justify-center shadow-lg">-</button>
-                        <span id="score-ellos" class="text-3xl font-bold w-12 text-center">0</span>
-                        <button data-team="ellos" data-op="plus" class="truco-btn bg-green-500 hover:bg-green-600 text-white rounded-full w-12 h-12 text-2xl font-bold flex items-center justify-center shadow-lg">+</button>
+                    <div class="flex items-center justify-around mt-2 pt-2 border-t dark:border-gray-700">
+                        <button data-team="ellos" data-op="minus" class="truco-btn bg-red-500 active:bg-red-600 text-white rounded-full w-12 h-12 text-2xl font-bold flex items-center justify-center shadow-md active:scale-90 transition-transform">-</button>
+                        <span id="score-ellos" class="text-3xl font-extrabold w-12 text-center">0</span>
+                        <button data-team="ellos" data-op="plus" class="truco-btn bg-green-500 active:bg-green-600 text-white rounded-full w-12 h-12 text-2xl font-bold flex items-center justify-center shadow-md active:scale-90 transition-transform">+</button>
                     </div>
                 </div>
             </main>
@@ -118,123 +156,353 @@
 
         <!-- ===== PANTALLA SETUP CHINCHÓN ===== -->
         <div id="chinchon-setup-screen" class="hidden flex-col items-center justify-center h-full fade-in">
-            <header class="mb-8 text-center">
-                 <button id="back-to-home-from-chinchon-setup" class="absolute top-4 left-4 text-indigo-600 dark:text-indigo-400 hover:underline">← Volver</button>
-                <h1 class="text-2xl font-bold">Setup de Chinchón</h1>
+            <header class="mb-6 text-center w-full relative">
+                <button id="back-to-home-from-chinchon-setup" class="absolute top-0 left-0 text-indigo-600 dark:text-indigo-400 font-medium hover:underline text-sm">← Inicio</button>
+                <h1 class="text-2xl font-bold">Chinchón</h1>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Configuración de jugadores</p>
             </header>
-            <main class="w-full flex flex-col space-y-6">
+            <main class="w-full flex flex-col space-y-5">
                 <div>
-                    <label for="player-count" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Número de jugadores:</label>
-                    <select id="player-count" class="mt-1 block w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    <label for="player-count" class="block text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-1">Número de jugadores:</label>
+                    <select id="player-count" class="block w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-base">
                         <option>2</option> <option>3</option> <option selected>4</option> <option>5</option> <option>6</option>
                     </select>
                 </div>
-                <div id="player-names-container" class="space-y-2"></div>
-                <button id="start-chinchon-game" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg">Comenzar Juego</button>
+                <div id="player-names-container" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+                <button id="start-chinchon-game" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition-transform active:scale-95">Comenzar Juego</button>
             </main>
         </div>
         
         <!-- ===== PANTALLA JUEGO CHINCHÓN ===== -->
         <div id="chinchon-game-screen" class="hidden flex-col h-full fade-in">
-            <header class="flex justify-between items-center mb-4">
-                 <button id="back-to-chinchon-setup" class="text-purple-600 dark:text-purple-400 hover:underline">← Volver</button>
-                 <button id="ai-help-chinchon" class="bg-purple-500 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">Sugerir Jugada ✨</button>
-                 <button id="reset-chinchon" class="text-red-500 hover:underline">Reset</button>
+            <header class="flex justify-between items-center mb-3">
+                 <button id="back-to-chinchon-setup" class="text-purple-600 dark:text-purple-400 font-medium hover:underline text-sm">← Setup</button>
+                 <button id="ai-help-chinchon" class="bg-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold shadow-sm hover:bg-purple-700">Sugerir Jugada ✨</button>
+                 <button id="reset-chinchon" class="text-red-500 hover:underline text-sm font-medium">Reset</button>
             </header>
-            <main id="chinchon-players-scores" class="flex-grow space-y-3 overflow-y-auto"></main>
+            <main id="chinchon-players-scores" class="flex-grow space-y-2.5 overflow-y-auto pr-0.5"></main>
         </div>
     </div>
 
     <!-- ===== MODALS ===== -->
-    <div id="modal-backdrop" class="fixed inset-0 z-40 bg-black bg-opacity-50 hidden"></div>
+    <div id="modal-backdrop" class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm hidden"></div>
     
     <!-- Modal Gemini IA -->
     <div id="ai-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm flex flex-col max-h-[80vh]">
-            <h3 id="ai-modal-title" class="text-xl font-bold mb-2 flex items-center gap-2">Gemini ✨</h3>
-            <div id="ai-modal-input-container" class="mb-4 hidden">
-                <p class="text-sm mb-2 text-gray-600 dark:text-gray-400">¿Qué duda tienes sobre el reglamento?</p>
-                <textarea id="ai-question-input" rows="3" class="w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600" placeholder="Ej: ¿Qué mata a qué en el truco?"></textarea>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 w-full max-w-sm flex flex-col max-h-[80vh]">
+            <h3 id="ai-modal-title" class="text-lg font-bold mb-2 flex items-center gap-2 text-indigo-600 dark:text-indigo-400">Gemini ✨</h3>
+            <div id="ai-modal-input-container" class="mb-3 hidden">
+                <p class="text-xs mb-2 text-gray-600 dark:text-gray-400">¿Qué duda tienes sobre el reglamento?</p>
+                <textarea id="ai-question-input" rows="3" class="w-full p-2.5 border rounded-xl dark:bg-gray-700 dark:border-gray-600 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="Ej: ¿Qué mata a qué en el truco?"></textarea>
             </div>
-            <div id="ai-modal-content" class="text-sm overflow-y-auto mb-4 whitespace-pre-wrap"></div>
-            <div id="ai-loading" class="hidden flex flex-col items-center justify-center py-4">
-                <div class="spinner border-indigo-600 mb-2"></div>
-                <p class="text-xs">Gemini está pensando...</p>
+            <div id="ai-modal-content" class="text-sm overflow-y-auto mb-4 whitespace-pre-wrap leading-relaxed"></div>
+            <div id="ai-loading" class="hidden flex flex-col items-center justify-center py-6">
+                <div class="spinner border-indigo-600 dark:border-indigo-400 mb-2"></div>
+                <p class="text-xs font-medium text-gray-500">Gemini está pensando...</p>
             </div>
             <div class="flex gap-2">
-                <button id="ai-modal-close" class="w-full bg-gray-500 text-white font-bold py-2 rounded-lg">Cerrar</button>
-                <button id="ai-modal-send" class="hidden w-full bg-indigo-600 text-white font-bold py-2 rounded-lg">Preguntar ✨</button>
+                <button id="ai-modal-close" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">Cerrar</button>
+                <button id="ai-modal-send" class="hidden w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl text-sm transition-colors">Preguntar ✨</button>
             </div>
         </div>
     </div>
 
     <!-- Modal para ingresar puntos en Chinchón -->
     <div id="chinchon-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
-            <h3 id="modal-player-name" class="text-xl font-bold mb-4"></h3>
-            <p class="mb-2">Ingresar puntos de la ronda:</p>
-            <input type="number" id="modal-score-input" class="w-full text-center text-3xl font-bold border-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 rounded-md p-2" placeholder="0">
-            <div class="grid grid-cols-2 gap-4 mt-4">
-                <button id="modal-chinchon-minus-10" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded-lg">-10 Puntos</button>
-                <button id="modal-chinchon-chinchon" class="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 rounded-lg">¡Chinchón! (-25)</button>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 w-full max-w-sm text-center">
+            <h3 id="modal-player-name" class="text-lg font-bold mb-3"></h3>
+            <p class="text-xs text-gray-500 mb-2">Ingresar puntos de la ronda:</p>
+            <input type="number" id="modal-score-input" class="w-full text-center text-3xl font-extrabold border-2 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 rounded-xl p-2.5 focus:border-purple-500 focus:outline-none" placeholder="0">
+            <div class="grid grid-cols-2 gap-3 mt-4">
+                <button id="modal-chinchon-minus-10" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm shadow">-10 Puntos</button>
+                <button id="modal-chinchon-chinchon" class="w-full bg-amber-500 hover:bg-amber-600 text-gray-950 font-extrabold py-2.5 rounded-xl text-sm shadow">¡Chinchón! (-25)</button>
             </div>
-            <div class="flex gap-4 mt-4">
-                <button id="modal-cancel" class="modal-btn-cancel w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Cancelar</button>
-                <button id="modal-confirm" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg">Sumar Puntos</button>
+            <div class="flex gap-3 mt-4">
+                <button id="modal-cancel" class="modal-btn-cancel w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2.5 rounded-xl text-sm">Cancelar</button>
+                <button id="modal-confirm" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 rounded-xl text-sm shadow">Sumar Puntos</button>
             </div>
         </div>
     </div>
 
     <!-- Modal de Historial de Puntos -->
     <div id="history-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm flex flex-col">
-            <h3 id="history-player-name" class="text-xl font-bold mb-3 text-center"></h3>
-            <div id="history-list-container" class="max-h-60 overflow-y-auto mb-4 border dark:border-gray-700 rounded-lg p-3 divide-y dark:divide-gray-700">
-                <!-- Se puebla dinámicamente -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 w-full max-w-sm flex flex-col">
+            <h3 id="history-player-name" class="text-lg font-bold mb-3 text-center"></h3>
+            <div id="history-list-container" class="max-h-56 overflow-y-auto mb-4 border dark:border-gray-700 rounded-xl p-3 divide-y dark:divide-gray-700 text-sm">
             </div>
             <div class="flex flex-col gap-2">
-                <button id="history-undo-btn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg text-sm hidden">Deshacer Última Anotación ↩</button>
-                <button id="history-close-btn" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 rounded-lg">Cerrar</button>
+                <button id="history-undo-btn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-xl text-xs hidden">Deshacer Última Anotación ↩</button>
+                <button id="history-close-btn" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 rounded-xl text-sm">Cerrar</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal Guía de Instalación iOS -->
+    <div id="ios-install-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center">
+            <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                📱
+            </div>
+            <h3 class="text-lg font-bold mb-2">Instalar en tu iPhone / iPad</h3>
+            <p class="text-xs text-gray-600 dark:text-gray-300 mb-4 text-left leading-relaxed">
+                Para tener la app en tu pantalla de inicio como una aplicación nativa:
+            </p>
+            <ol class="text-xs text-gray-700 dark:text-gray-300 text-left space-y-2 mb-5 font-medium bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border dark:border-gray-600">
+                <li class="flex items-center gap-2">
+                    <span class="bg-indigo-600 text-white font-bold w-5 h-5 rounded-full flex items-center justify-center text-[10px]">1</span>
+                    <span>Toca el botón <strong>Compartir</strong> en Safari (el cuadrado con la flecha <span class="text-base">⎋</span>).</span>
+                </li>
+                <li class="flex items-center gap-2">
+                    <span class="bg-indigo-600 text-white font-bold w-5 h-5 rounded-full flex items-center justify-center text-[10px]">2</span>
+                    <span>Desplázate hacia abajo y selecciona <strong>"Agregar a inicio"</strong> ➕.</span>
+                </li>
+                <li class="flex items-center gap-2">
+                    <span class="bg-indigo-600 text-white font-bold w-5 h-5 rounded-full flex items-center justify-center text-[10px]">3</span>
+                    <span>Toca <strong>Agregar</strong> en la esquina superior derecha.</span>
+                </li>
+            </ol>
+            <button id="ios-install-close" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-sm">¡Entendido!</button>
         </div>
     </div>
     
     <!-- Modal de Ganador -->
     <div id="winner-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 text-center">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8">
-            <h2 class="text-3xl font-bold text-yellow-400 mb-4">¡Partida Terminada!</h2>
-            <p id="winner-message" class="text-lg mb-6"></p>
-            <button id="winner-modal-close" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg">Jugar de Nuevo</button>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-xs">
+            <div class="text-4xl mb-2">🏆</div>
+            <h2 class="text-2xl font-black text-amber-500 mb-2">¡Partida Terminada!</h2>
+            <p id="winner-message" class="text-sm text-gray-700 dark:text-gray-300 mb-5 font-medium"></p>
+            <button id="winner-modal-close" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-6 rounded-xl text-sm shadow">Jugar de Nuevo</button>
         </div>
     </div>
 
     <!-- Modal de Confirmación -->
     <div id="confirm-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
-            <p id="confirm-message" class="text-lg mb-6">¿Estás seguro?</p>
-            <div class="flex gap-4">
-                <button id="confirm-cancel-btn" class="modal-btn-cancel w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Cancelar</button>
-                <button id="confirm-ok-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg">Confirmar</button>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 w-full max-w-sm text-center">
+            <p id="confirm-message" class="text-base font-medium mb-5">¿Estás seguro?</p>
+            <div class="flex gap-3">
+                <button id="confirm-cancel-btn" class="modal-btn-cancel w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2.5 rounded-xl text-sm">Cancelar</button>
+                <button id="confirm-ok-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-sm shadow">Confirmar</button>
             </div>
         </div>
     </div>
 
     <!-- Modal para cambiar nombre de equipo -->
     <div id="name-change-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-sm text-center">
-            <h3 id="name-change-title" class="text-xl font-bold mb-4">Cambiar Nombre</h3>
-            <input type="text" id="name-change-input" class="w-full text-lg border-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 rounded-md p-2">
-            <div class="flex gap-4 mt-4">
-                <button id="name-change-cancel" class="modal-btn-cancel w-full bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg">Cancelar</button>
-                <button id="name-change-save" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg">Guardar</button>
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-5 w-full max-w-sm text-center">
+            <h3 id="name-change-title" class="text-base font-bold mb-3">Cambiar Nombre</h3>
+            <input type="text" id="name-change-input" class="w-full text-base border-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 rounded-xl p-2.5 focus:border-indigo-500 focus:outline-none">
+            <div class="flex gap-3 mt-4">
+                <button id="name-change-cancel" class="modal-btn-cancel w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2.5 rounded-xl text-sm">Cancelar</button>
+                <button id="name-change-save" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-sm shadow">Guardar</button>
             </div>
         </div>
     </div>
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // --- Gemini API Setup ---
-        const apiKey = ""; // API Key se provee en el entorno
+
+        // ==========================================
+        // 🎨 GENERACIÓN DINÁMICA DE ÍCONO PWA Y LOGO
+        // ==========================================
+        function createPWAAppIcon(size = 512) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            // Background Gradient (Dark Indigo to Rich Violet)
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#1e1b4b');
+            gradient.addColorStop(0.5, '#312e81');
+            gradient.addColorStop(1, '#4c1d95');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, size, size);
+
+            // Card 1 (Back/Left - Espadas/Gold accent)
+            ctx.save();
+            ctx.translate(size * 0.38, size * 0.52);
+            ctx.rotate(-15 * Math.PI / 180);
+            ctx.fillStyle = '#f8fafc';
+            ctx.shadowColor = 'rgba(0,0,0,0.4)';
+            ctx.shadowBlur = size * 0.04;
+            ctx.shadowOffsetY = size * 0.02;
+            roundRect(ctx, -size * 0.18, -size * 0.26, size * 0.36, size * 0.52, size * 0.04);
+            ctx.fill();
+            
+            // Ace of spades/cards motif inside
+            ctx.fillStyle = '#312e81';
+            ctx.font = `bold ${size * 0.12}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('♠', 0, 0);
+            ctx.restore();
+
+            // Card 2 (Front/Right - Gold playing card)
+            ctx.save();
+            ctx.translate(size * 0.62, size * 0.48);
+            ctx.rotate(12 * Math.PI / 180);
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = size * 0.06;
+            ctx.shadowOffsetY = size * 0.03;
+            roundRect(ctx, -size * 0.18, -size * 0.26, size * 0.36, size * 0.52, size * 0.04);
+            ctx.fill();
+
+            // Card border line
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = size * 0.008;
+            roundRect(ctx, -size * 0.16, -size * 0.24, size * 0.32, size * 0.48, size * 0.03);
+            ctx.stroke();
+
+            // Center Crown/Gold Emblem
+            ctx.fillStyle = '#dc2626';
+            ctx.font = `bold ${size * 0.13}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('♥', 0, 0);
+            ctx.restore();
+
+            // AI Sparkle Badge at bottom-right
+            ctx.save();
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.arc(size * 0.78, size * 0.78, size * 0.09, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#0f172a';
+            ctx.font = `bold ${size * 0.08}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('✨', size * 0.78, size * 0.78);
+            ctx.restore();
+
+            return canvas.toDataURL('image/png');
+        }
+
+        function roundRect(ctx, x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        // Generate Icons
+        const iconDataUrl = createPWAAppIcon(512);
+        document.getElementById('favicon-link').setAttribute('href', iconDataUrl);
+        document.getElementById('apple-touch-icon-link').setAttribute('href', iconDataUrl);
+
+        // Dynamic Manifest Blob Registration
+        const manifestObj = {
+            "name": "Anotador Truco y Chinchón IA",
+            "short_name": "Anotador IA",
+            "description": "Anotador de puntos para Truco y Chinchón con Asistente Gemini IA",
+            "start_url": "./",
+            "display": "standalone",
+            "orientation": "portrait",
+            "background_color": "#1e1b4b",
+            "theme_color": "#1e1b4b",
+            "icons": [
+                {
+                    "src": iconDataUrl,
+                    "sizes": "512x512",
+                    "type": "image/png",
+                    "purpose": "any maskable"
+                }
+            ]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifestObj)], { type: 'application/json' });
+        document.getElementById('manifest-link').setAttribute('href', URL.createObjectURL(manifestBlob));
+
+        // ==========================================
+        // ⚡ SERVICE WORKER & PWA INSTALL LOGIC
+        // ==========================================
+        if ('serviceWorker' in navigator) {
+            const swContent = `
+                const CACHE_NAME = 'anotador-pwa-v4';
+                const ASSETS = [
+                    './',
+                    'https://cdn.tailwindcss.com',
+                    'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap'
+                ];
+
+                self.addEventListener('install', (e) => {
+                    e.waitUntil(
+                        caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).then(() => self.skipWaiting())
+                    );
+                });
+
+                self.addEventListener('activate', (e) => {
+                    e.waitUntil(
+                        caches.keys().then((keys) => {
+                            return Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)));
+                        }).then(() => self.clients.claim())
+                    );
+                });
+
+                self.addEventListener('fetch', (e) => {
+                    if (e.request.method !== 'GET') return;
+                    e.respondWith(
+                        caches.match(e.request).then((cached) => {
+                            const networked = fetch(e.request).then((response) => {
+                                const cacheCopy = response.clone();
+                                caches.open(CACHE_NAME).then((cache) => cache.put(e.request, cacheCopy));
+                                return response;
+                            }).catch(() => cached);
+                            return cached || networked;
+                        })
+                    );
+                });
+            `;
+            const swBlob = new Blob([swContent], { type: 'application/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(swBlob))
+                .catch(err => console.log('SW registration note:', err));
+        }
+
+        // Detect Standalone / Already Installed
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || document.referrer.includes('android-app://');
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        const installBtn = document.getElementById('pwa-install-btn');
+        let deferredPrompt = null;
+
+        if (!isStandalone) {
+            if (isIOS) {
+                // Show Install option for iOS
+                installBtn.classList.remove('hidden');
+                installBtn.onclick = () => {
+                    openModal(document.getElementById('ios-install-modal'));
+                };
+            } else {
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    installBtn.classList.remove('hidden');
+                });
+
+                installBtn.onclick = async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        if (outcome === 'accepted') {
+                            installBtn.classList.add('hidden');
+                        }
+                        deferredPrompt = null;
+                    }
+                };
+            }
+        }
+
+        document.getElementById('ios-install-close').onclick = () => closeModal(document.getElementById('ios-install-modal'));
+
+        // ==========================================
+        // 🤖 GEMINI API INTEGRATION
+        // ==========================================
+        const apiKey = ""; // Built-in environment key handler
         const GEMINI_MODEL = "gemini-2.5-flash-preview-09-2025";
         
         async function callGemini(prompt, systemInstruction = "Eres un experto en juegos de cartas argentinos como Truco y Chinchón.") {
@@ -263,8 +531,15 @@
             }
         }
 
-        // --- Selectores Globales ---
-        const screens = { home: document.getElementById('home-screen'), truco: document.getElementById('truco-screen'), chinchonSetup: document.getElementById('chinchon-setup-screen'), chinchonGame: document.getElementById('chinchon-game-screen') };
+        // ==========================================
+        // 📱 STATE & MODAL MANAGEMENT
+        // ==========================================
+        const screens = { 
+            home: document.getElementById('home-screen'), 
+            truco: document.getElementById('truco-screen'), 
+            chinchonSetup: document.getElementById('chinchon-setup-screen'), 
+            chinchonGame: document.getElementById('chinchon-game-screen') 
+        };
         const TRUCO_STORAGE_KEY = 'anotadorTrucoStateIA';
         const CHINCHON_STORAGE_KEY = 'anotadorChinchonStateIA';
         
@@ -273,7 +548,6 @@
         let chinchonPlayers = [];
         let currentPlayerIndex = null;
 
-        // --- Lógica de Modales ---
         const modalBackdrop = document.getElementById('modal-backdrop');
         const aiModal = document.getElementById('ai-modal');
         const aiModalContent = document.getElementById('ai-modal-content');
@@ -289,8 +563,8 @@
         }
 
         function closeModal(modalElement) {
-             modalBackdrop.classList.add('hidden');
-             modalElement.classList.add('hidden');
+            modalBackdrop.classList.add('hidden');
+            modalElement.classList.add('hidden');
         }
 
         aiModalClose.addEventListener('click', () => closeModal(aiModal));
@@ -308,7 +582,7 @@
                     const response = await callGemini(prompt);
                     aiModalContent.textContent = response;
                 } catch (e) {
-                    aiModalContent.textContent = "Error al conectar con Gemini. Intenta de nuevo.";
+                    aiModalContent.textContent = "Error al conectar con Gemini. Revisa tu conexión.";
                 } finally {
                     aiLoading.classList.add('hidden');
                 }
@@ -331,7 +605,7 @@
             }
         }
 
-        // --- Navegación ---
+        // Navigation Handler
         function showScreen(screenName) {
             Object.values(screens).forEach(screen => screen.classList.add('hidden'));
             if(screens[screenName]) {
@@ -353,7 +627,7 @@
             });
         });
         
-        // --- Persistencia ---
+        // Persistence Helpers
         const saveTrucoState = () => localStorage.setItem(TRUCO_STORAGE_KEY, JSON.stringify({ scores: trucoScores, names: trucoTeamNames }));
         const saveChinchonState = () => localStorage.setItem(CHINCHON_STORAGE_KEY, JSON.stringify(chinchonPlayers));
 
@@ -373,14 +647,16 @@
             if (chinchonPlayers.length > 0) renderChinchonScores();
         }
 
-        // ================== LÓGICA TRUCO ==================
+        // ==========================================
+        // 🃏 TRUCO GAME LOGIC
+        // ==========================================
         document.getElementById('ai-help-truco').addEventListener('click', () => handleAIRequest("", "Consultar Regla", true));
         document.getElementById('ai-verse-truco').addEventListener('click', () => handleAIRequest("Genera un verso corto y gracioso de Truco argentino para cantar falta envido o truco.", "Verso de Truco"));
 
         function getTallySVG(type) {
             const strokeColor = 'currentColor';
-            if (type === 1) return `<svg width="10" height="40" viewBox="0 0 10 40"><line x1="5" y1="0" x2="5" y2="40" stroke="${strokeColor}" stroke-width="3"/></svg>`;
-            if (type === 5) return `<svg width="45" height="40" viewBox="0 0 45 40"><g stroke-width="3" stroke="${strokeColor}"><line x1="5" y1="0" x2="5" y2="40"/><line x1="40" y1="0" x2="40" y2="40"/><line x1="5" y1="2" x2="40" y2="2"/><line x1="5" y1="38" x2="40" y2="38"/><line x1="5" y1="38" x2="40" y2="2"/></g></svg>`;
+            if (type === 1) return `<svg width="10" height="38" viewBox="0 0 10 38"><line x1="5" y1="0" x2="5" y2="38" stroke="${strokeColor}" stroke-width="3"/></svg>`;
+            if (type === 5) return `<svg width="42" height="38" viewBox="0 0 42 38"><g stroke-width="3" stroke="${strokeColor}"><line x1="4" y1="0" x2="4" y2="38"/><line x1="38" y1="0" x2="38" y2="38"/><line x1="4" y1="2" x2="38" y2="2"/><line x1="4" y1="36" x2="38" y2="36"/><line x1="4" y1="36" x2="38" y2="2"/></g></svg>`;
             return '';
         }
 
@@ -417,9 +693,11 @@
             openModal(document.getElementById('name-change-modal'));
         }));
         
-        document.getElementById('reset-truco').addEventListener('click', () => showConfirm('¿Reiniciar partida?', () => { trucoScores = { nosotros: 0, ellos: 0 }; updateTrucoUI(); }));
+        document.getElementById('reset-truco').addEventListener('click', () => showConfirm('¿Reiniciar partida de Truco?', () => { trucoScores = { nosotros: 0, ellos: 0 }; updateTrucoUI(); }));
 
-        // ================== LÓGICA CHINCHÓN ==================
+        // ==========================================
+        // 🎴 CHINCHÓN GAME LOGIC
+        // ==========================================
         document.getElementById('ai-help-chinchon').addEventListener('click', () => handleAIRequest("Dime una estrategia rápida para ganar al Chinchón si tengo cartas altas o si busco el -10.", "Estrategia de Chinchón"));
 
         const playerCountSelect = document.getElementById('player-count');
@@ -427,7 +705,7 @@
         
         function updatePlayerNameInputs() {
             playerNamesContainer.innerHTML = Array.from({length: parseInt(playerCountSelect.value)}, (_, i) => 
-                `<input type="text" placeholder="Jugador ${i + 1}" value="Jugador ${i+1}" class="player-name-input mt-1 block w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm py-2 px-3">`
+                `<input type="text" placeholder="Jugador ${i + 1}" value="Jugador ${i+1}" class="player-name-input mt-1 block w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl shadow-sm py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500">`
             ).join('');
         }
         playerCountSelect.addEventListener('change', updatePlayerNameInputs);
@@ -442,17 +720,17 @@
             container.innerHTML = '';
             chinchonPlayers.forEach((player, index) => {
                 const playerDiv = document.createElement('div');
-                playerDiv.className = `p-4 rounded-lg flex items-center justify-between shadow transition-all ${player.eliminated ? 'bg-red-900/50 opacity-50' : 'bg-gray-200 dark:bg-gray-800'}`;
+                playerDiv.className = `p-3.5 rounded-2xl flex items-center justify-between shadow-sm border dark:border-gray-700/80 transition-all ${player.eliminated ? 'bg-red-950/20 border-red-800/40 opacity-60' : 'bg-white dark:bg-gray-800'}`;
                 playerDiv.innerHTML = `
                     <div class="flex flex-col">
-                        <span class="font-bold text-lg">${player.name}</span>
-                        <span class="font-bold text-3xl ${player.score >= 101 ? 'text-red-500' : ''}">${player.score}</span>
+                        <span class="font-bold text-base leading-snug">${player.name}</span>
+                        <span class="font-black text-2xl ${player.score >= 101 ? 'text-red-500' : 'text-purple-600 dark:text-purple-400'}">${player.score} <span class="text-xs text-gray-400 font-normal">pts</span></span>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button data-idx="${index}" class="show-history-btn bg-gray-600 hover:bg-gray-700 text-white p-2.5 rounded-lg flex items-center justify-center shadow" title="Ver Historial">
+                        <button data-idx="${index}" class="show-history-btn bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 p-2.5 rounded-xl flex items-center justify-center transition-colors active:scale-90" title="Ver Historial">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                         </button>
-                        ${!player.eliminated ? `<button data-idx="${index}" class="add-score-btn bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded-lg shadow">Anotar</button>` : '<span class="text-red-400 font-bold ml-2">ELIMINADO</span>'}
+                        ${!player.eliminated ? `<button data-idx="${index}" class="add-score-btn bg-purple-600 hover:bg-purple-700 active:scale-95 text-white font-bold py-2 px-3.5 rounded-xl shadow-sm text-sm transition-transform">Anotar</button>` : '<span class="text-red-500 font-extrabold text-xs tracking-wider bg-red-100 dark:bg-red-900/40 px-2.5 py-1 rounded-full">ELIMINADO</span>'}
                     </div>`;
                 
                 if (!player.eliminated) {
@@ -471,7 +749,7 @@
                 container.appendChild(playerDiv);
             });
             const active = chinchonPlayers.filter(p => !p.eliminated);
-            if (chinchonPlayers.length > 1 && active.length === 1) showWinner(`¡${active[0].name} ganó el Chinchón!`);
+            if (chinchonPlayers.length > 1 && active.length === 1) showWinner(`¡${active[0].name} ganó la partida de Chinchón!`);
         }
         
         function openHistoryModal(index) {
@@ -483,17 +761,17 @@
             const undoBtn = document.getElementById('history-undo-btn');
             
             if (!player.history || player.history.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500 py-3">No hay puntos anotados aún.</p>';
+                container.innerHTML = '<p class="text-center text-gray-400 py-4 text-xs">No hay anotaciones en esta partida.</p>';
                 undoBtn.classList.add('hidden');
             } else {
                 let cumulative = 0;
                 container.innerHTML = player.history.map((pts, i) => {
                     cumulative += pts;
                     const isNeg = pts < 0;
-                    return `<div class="flex justify-between items-center py-2 text-sm">
-                        <span class="text-gray-500">Ronda ${i + 1}</span>
-                        <span class="font-semibold ${isNeg ? 'text-green-500' : 'text-indigo-400'}">${pts > 0 ? '+' : ''}${pts} pts</span>
-                        <span class="font-bold text-gray-400">Total: ${cumulative}</span>
+                    return `<div class="flex justify-between items-center py-2 text-xs">
+                        <span class="text-gray-400 font-medium">Ronda ${i + 1}</span>
+                        <span class="font-bold ${isNeg ? 'text-green-500' : 'text-purple-500'}">${pts > 0 ? '+' : ''}${pts} pts</span>
+                        <span class="font-bold text-gray-500 dark:text-gray-400">Total: ${cumulative}</span>
                     </div>`;
                 }).join('');
 
@@ -527,9 +805,9 @@
         document.getElementById('modal-chinchon-minus-10').onclick = () => addPoints(-10);
         document.getElementById('modal-chinchon-chinchon').onclick = () => addPoints(-25);
         document.getElementById('modal-cancel').onclick = () => closeModal(document.getElementById('chinchon-modal'));
-        document.getElementById('reset-chinchon').onclick = () => showConfirm('¿Reiniciar?', () => { chinchonPlayers = []; saveChinchonState(); showScreen('chinchonSetup'); });
+        document.getElementById('reset-chinchon').onclick = () => showConfirm('¿Reiniciar Chinchón?', () => { chinchonPlayers = []; saveChinchonState(); showScreen('chinchonSetup'); });
 
-        // --- Modals Auxiliares ---
+        // Auxiliary Modals
         function showConfirm(msg, onOk) {
             document.getElementById('confirm-message').textContent = msg;
             const okBtn = document.getElementById('confirm-ok-btn');
@@ -544,6 +822,14 @@
             closeModal(document.getElementById('winner-modal'));
             localStorage.clear(); location.reload();
         };
+
+        // Modals cancel handler setup
+        document.querySelectorAll('.modal-btn-cancel').forEach(btn => {
+            btn.onclick = (e) => {
+                const modal = e.target.closest('.fixed.z-50');
+                if (modal) closeModal(modal);
+            };
+        });
 
         loadGameState();
         showScreen('home');
